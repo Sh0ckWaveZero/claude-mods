@@ -37,6 +37,13 @@ claude plugin marketplace update sh0ck-mods
 claude plugin update usage-band@sh0ck-mods
 ```
 
+If you installed plan-progress too:
+
+```
+claude plugin marketplace update zycck-mods
+claude plugin update plan-progress@zycck-mods
+```
+
 ### Commands
 
 - `/usage-band` shows or hides the band
