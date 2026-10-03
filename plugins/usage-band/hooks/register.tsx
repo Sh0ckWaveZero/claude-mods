@@ -163,7 +163,8 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || !(await read($, isOpen))) return next(e)
+    // ponytail: desktop only; terminal falls through to whatever else draws here
+    if (e.surface !== 'desktop' || e.props.hasSurvey || !(await read($, isOpen))) return next(e)
 
     // other mods draw in this band too (plan-progress); keep what sits beneath us and stack it under ours
     const below = await next(e)
@@ -175,25 +176,7 @@ export const register: Register = on => {
     const seven = usage.rateLimits.find(l => l.kind === 'seven_day')
     const cost = `$${(usage.cost?.usd ?? 0).toFixed(2)}`
 
-    const { Box, Text } = $.ui.resolve(e)
-
-    if (e.surface === 'terminal') {
-      const parts = [
-        `5h ${five ? `${Math.round(five.percentUsed)}%` : '--%'}`,
-        `7d ${seven ? `${Math.round(seven.percentUsed)}%` : '--%'}`,
-        `↑${compact(total.input)} ↓${compact(total.output)} ⛁${compact(total.cache)}`,
-        cost,
-      ]
-
-      return (
-        <Box flexDirection="column">
-          <Text dimColor>{parts.join('  ')}</Text>
-          {below}
-        </Box>
-      )
-    }
-
-    const { Svg } = $.ui.resolve(e) as { Svg: (props: Record<string, unknown>) => unknown }
+    const { Box, Svg } = $.ui.resolve(e) as ReturnType<typeof $.ui.resolve> & { Svg: (props: Record<string, unknown>) => unknown }
 
     const pills: { width: number; svg: (x: number) => string }[] = []
     const widths: number[] = []

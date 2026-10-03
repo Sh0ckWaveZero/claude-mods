@@ -4,7 +4,7 @@
 
 ![usage-band above the prompt in the Claude Code desktop app, stacked with plan-progress](docs/usage-band.png)
 
-A band of pills above the Claude Code prompt, drawn in the desktop app (the terminal gets one line of text):
+A band of pills above the Claude Code prompt, drawn in the desktop app (nothing in the terminal):
 
 - `5h` and `7d` rate-limit gauges with the percent used, a marker for how much of the window has passed, and the time until it resets
 - session tokens: input (uncached), output, and cache read + write

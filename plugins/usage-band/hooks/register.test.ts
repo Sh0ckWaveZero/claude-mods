@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 const HOUR = 3_600_000
 const props = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120 } as never
 
-test('turn usage fills the band on terminal and desktop', async ($, on) => {
+test('turn usage fills the band on desktop only', async ($, on) => {
   const now = Date.parse('2026-10-03T10:00:00Z')
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['plan bar below'] }) as never)
   on('clock.now', () => ({ value: now }))
@@ -29,11 +29,12 @@ test('turn usage fills the band on terminal and desktop', async ($, on) => {
     usage: { model: 'm', input_tokens: 15600, output_tokens: 3000, cache_read_input_tokens: 900000, cache_creation_input_tokens: 54200 },
   } as never)
 
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'usage-band', surface, component: 'AbovePrompt', props })
-    const hit = await ui.find({ type: surface === 'terminal' ? 'Text' : 'Svg' })
-    expect(hit).toBeDefined()
-  }
+  const desktop = await $.ui.mount({ plugin: 'usage-band', surface: 'desktop', component: 'AbovePrompt', props })
+  expect(await desktop.find({ type: 'Svg' })).toBeDefined()
+
+  const terminal = await $.ui.mount({ plugin: 'usage-band', surface: 'terminal', component: 'AbovePrompt', props })
+  expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
+  expect(await terminal.find({ type: 'Text', text: 'plan bar below' })).toBeDefined()
 })
 
 test('band still draws with no rate limits, tokens or cost', async ($, on) => {
@@ -41,9 +42,7 @@ test('band still draws with no rate limits, tokens or cost', async ($, on) => {
   on('clock.now', () => ({ value: Date.parse('2026-10-03T10:00:00Z') }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000 }, rateLimits: [] } }))
 
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'usage-band', surface, component: 'AbovePrompt', props })
-    expect(await ui.find({ type: surface === 'terminal' ? 'Text' : 'Svg' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: 'plan bar below' })).toBeDefined()
-  }
+  const ui = await $.ui.mount({ plugin: 'usage-band', surface: 'desktop', component: 'AbovePrompt', props })
+  expect(await ui.find({ type: 'Svg' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'plan bar below' })).toBeDefined()
 })
