@@ -1,6 +1,6 @@
 {
   "name": "usage-band",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Pill band above the Claude Code prompt: 5h and 7d rate-limit gauges, session tokens and cost. Stacks with other bands such as plan-progress.",
   "author": { "name": "Sh0ckWaveZero", "url": "https://github.com/Sh0ckWaveZero" },
   "license": "MIT",
