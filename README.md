@@ -30,4 +30,23 @@ Together with plan-progress:
 /plugin install plan-progress@zycck-mods
 ```
 
+Update:
+
+```
+claude plugin marketplace update sh0ck-mods
+claude plugin update usage-band@sh0ck-mods
+```
+
+### Commands
+
+- `/usage-band` shows or hides the band
+
+### Theme
+
+Colors follow the app theme, read once when the session starts: a dark theme gets lighter ink and a lighter track so text and the marker keep their contrast. Any other theme keeps the light look.
+
+## License
+
+MIT
+
 Built with Claude Code mods (function hooks).

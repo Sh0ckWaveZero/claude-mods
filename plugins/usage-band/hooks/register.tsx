@@ -9,17 +9,34 @@ const tokens = atom({ plugin: 'usage-band', key: 'tokens' } as const, {
   cache: 0,
 } as Tokens)
 const tick = atom({ plugin: 'usage-band', key: 'tick' } as const, 0)
+const isOpen = atom({ plugin: 'usage-band', key: 'isOpen' } as const, true)
 
 const HOUR = 3_600_000
 const WINDOWS: Record<string, number> = { five_hour: 5 * HOUR, seven_day: 168 * HOUR }
 
 type Palette = { fill: string; ink: string; bar: string }
 
-const GREEN: Palette = { fill: '#2f8f6f26', ink: '#2f7d62', bar: '#7fae6a' }
-const PURPLE: Palette = { fill: '#7c5cd62e', ink: '#6a4bc4', bar: '#7fae6a' }
-const RED: Palette = { fill: '#d6513a2e', ink: '#c0432d', bar: '#d6513a' }
-const BLUE: Palette = { fill: '#4a5fd62e', ink: '#3f51c7', bar: '#4a5fd6' }
-const GOLD: Palette = { fill: '#c9a0332e', ink: '#a07d12', bar: '#c9a033' }
+const LIGHT = {
+  green: { fill: '#2f8f6f26', ink: '#2f7d62', bar: '#7fae6a' },
+  purple: { fill: '#7c5cd62e', ink: '#6a4bc4', bar: '#7fae6a' },
+  red: { fill: '#d6513a2e', ink: '#c0432d', bar: '#d6513a' },
+  blue: { fill: '#4a5fd62e', ink: '#3f51c7', bar: '#4a5fd6' },
+  gold: { fill: '#c9a0332e', ink: '#a07d12', bar: '#c9a033' },
+}
+// same hues on a dark band: lighter ink so text keeps its contrast
+const DARK = {
+  green: { fill: '#4cc79a2e', ink: '#6fd9b0', bar: '#7fae6a' },
+  purple: { fill: '#9b82f03a', ink: '#b8a4ff', bar: '#7fae6a' },
+  red: { fill: '#f0705a3a', ink: '#ff9a86', bar: '#f0705a' },
+  blue: { fill: '#7b8cf53a', ink: '#a5b2ff', bar: '#7b8cf5' },
+  gold: { fill: '#e6c05a33', ink: '#f0cf72', bar: '#e6c05a' },
+}
+// the theme is read once at session start; an unknown theme keeps the light look
+let isDark = false
+const palettes = () => (isDark ? DARK : LIGHT)
+// marker and track must show on both backgrounds
+const trackColor = () => (isDark ? '#ffffff2e' : '#00000022')
+const markerColor = () => (isDark ? '#e8e8e8' : '#3a3a3a')
 const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace"
 const CHAR_W = 7.9
 const PILL_H = 24
@@ -61,9 +78,9 @@ const bar = (pct: number, elapsed: number | null, p: Palette): Piece => ({
   svg: x => {
     const w = 94
     const fill = Math.max(2, (Math.min(100, pct) / 100) * w)
-    const marker = elapsed === null ? '' : `<rect x="${x + elapsed * w - 1}" y="3.5" width="2" height="17" rx="1" fill="#3a3a3a" />`
+    const marker = elapsed === null ? '' : `<rect x="${x + elapsed * w - 1}" y="3.5" width="2" height="17" rx="1" fill="${markerColor()}" />`
     return (
-      `<rect x="${x}" y="9" width="${w}" height="6" rx="3" fill="#00000022" />` +
+      `<rect x="${x}" y="9" width="${w}" height="6" rx="3" fill="${trackColor()}" />` +
       `<rect x="${x}" y="9" width="${fill}" height="6" rx="3" fill="${p.bar}" />${marker}`
     )
   },
@@ -114,8 +131,11 @@ const limitPill = (limit: SessionRateLimit | undefined, name: string, short: str
 }
 
 export const register: Register = on => {
-  on('session.start', ($, e, next) => {
+  on('session.start', async ($, e, next) => {
+    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+    isDark = /dark/i.test(String(theme?.value ?? ''))
     $.clock.every(60_000, () => update($, tick, n => n + 1))
+    await $.command.register({ name: 'usage-band', description: 'Show or hide the usage band' })
 
     return next(e)
   })
@@ -135,8 +155,15 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('command.run', { command: 'usage-band' }, async $ => {
+    const open = await read($, isOpen)
+    await update($, isOpen, () => !open)
+
+    return { text: open ? 'Usage band hidden.' : 'Usage band shown.' }
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
+    if (e.props.hasSurvey || !(await read($, isOpen))) return next(e)
 
     // other mods draw in this band too (plan-progress); keep what sits beneath us and stack it under ours
     const below = await next(e)
@@ -175,12 +202,13 @@ export const register: Register = on => {
       widths.push(pill(pieces, p, 0).width)
     }
 
-    add(limitPill(five, 'gauge', '5h', GREEN, now), GREEN)
-    add(limitPill(seven, 'calendar', '7d', PURPLE, now), PURPLE)
-    add([glyph('up', RED.ink), label(compact(total.input), RED.ink)], RED)
-    add([glyph('down', GREEN.ink), label(compact(total.output), GREEN.ink)], GREEN)
-    add([glyph('layers', BLUE.ink), label(compact(total.cache), BLUE.ink)], BLUE)
-    add([glyph('dollar', GOLD.ink), label(cost, GOLD.ink)], GOLD)
+    const { green, purple, red, blue, gold } = palettes()
+    add(limitPill(five, 'gauge', '5h', green, now), green)
+    add(limitPill(seven, 'calendar', '7d', purple, now), purple)
+    add([glyph('up', red.ink), label(compact(total.input), red.ink)], red)
+    add([glyph('down', green.ink), label(compact(total.output), green.ink)], green)
+    add([glyph('layers', blue.ink), label(compact(total.cache), blue.ink)], blue)
+    add([glyph('dollar', gold.ink), label(cost, gold.ink)], gold)
 
     const gap = 10
     let x = 0
