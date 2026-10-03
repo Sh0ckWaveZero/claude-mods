@@ -1,0 +1,17 @@
+{
+  "name": "sh0ck-mods",
+  "owner": {
+    "name": "Sh0ckWaveZero",
+    "url": "https://github.com/Sh0ckWaveZero"
+  },
+  "metadata": {
+    "description": "Claude Code mods by Sh0ckWaveZero"
+  },
+  "plugins": [
+    {
+      "name": "usage-band",
+      "source": "./plugins/usage-band",
+      "description": "Pill band above the prompt: 5h and 7d rate-limit gauges, session tokens and cost"
+    }
+  ]
+}
